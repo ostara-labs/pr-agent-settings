@@ -1,0 +1,45 @@
+# Org-wide PR-Agent review configuration.
+#
+# This file is read automatically by PR-Agent from the default branch of
+# `ostara-labs/pr-agent-settings` and merged BENEATH each repository's
+# local `.pr_agent.toml`:
+#
+#   built-in defaults  <  this file  <  repo-local .pr_agent.toml  <  workflow env
+#
+# Model routing (CONFIG.MODEL) and the persistent-finding-state switch live
+# in the devtools ai-review workflow; everything about WHAT the reviewer
+# reports lives here. Consumers override per repo by adding a local
+# `.pr_agent.toml`. Docs: ostara-labs/devtools docs/ai-review.md
+
+[config]
+restricted_mode = true
+
+[pr_reviewer]
+# One evolving review comment per PR instead of a new wall per push.
+persistent_comment = true
+# Human-readable verdict in the review (safe_to_merge /
+# merge_with_caution / changes_required). The hard merge gate is
+# label-based and lives in the devtools workflow.
+require_merge_recommendation = true
+
+extra_instructions = """
+- When the repository has an AGENTS.md, its conventions are the source of
+  truth: flag violations of them first, they outrank generic best practices.
+- Chill profile: report only findings that would block a merge or risk
+  a production incident. Style nits, refactors of pre-existing code and
+  hypothetical improvements are out of scope.
+- When a finding is real, name the exact file and line, and state the
+  concrete failure it causes - not a generic risk.
+- Lockfiles and generated/vendored artifacts (Cargo.lock, pnpm-lock.yaml,
+  package-lock.json, yarn.lock, go.sum, *.min.js, dist/, target/) are out
+  of scope: never comment on their content.
+"""
+
+[pr_code_suggestions]
+# Anchored, committable suggestions (the /improve tool): each suggestion
+# above the score threshold is published as an inline, resolvable review
+# thread with a one-click suggestion block; the rest stay in the summary
+# table. Lower the threshold for more inline suggestions (0-10), -1 to
+# disable inline publication entirely.
+commitable_code_suggestions = true
+dual_publishing_score_threshold = 8
