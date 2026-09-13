@@ -1,0 +1,7 @@
+# CODEOWNERS — trust-boundary pattern
+#
+# Normal PRs merge without human approval. Trust-boundary paths (.github/),
+# which can alter CI, workflows and merge policy, require explicit owner
+# approval via the `trust-boundary-codeowner-review` repository ruleset
+# (require_code_owner_review).
+/.github/ @Oloompa
