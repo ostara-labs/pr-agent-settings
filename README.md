@@ -21,3 +21,14 @@ built-in defaults  <  this file  <  repo-local .pr_agent.toml  <  workflow env
   the org at its next PR.
 
 How the review runs end to end: `ostara-labs/devtools/docs/ai-review.md`.
+
+## Known false positive: ticket compliance
+
+`pr_reviewer.require_ticket_analysis_review` is on by default upstream, and the
+ticket is picked out of the PR body by a hardcoded pattern whose third
+alternative is `(#\d+)`. Any bare `#42` in prose - an issue reference, a version
+number - therefore reads as a ticket, and the review opens a *Partially
+compliant* block for it. No configuration key exists to demand a stricter
+syntax; upstream issue
+[#3381](https://github.com/The-PR-Agent/pr-agent/issues/3381) proposes one.
+Ignore the block unless the ticket it quotes is real.
