@@ -13,6 +13,12 @@
 
 [config]
 restricted_mode = true
+# The PR-Agent image's built-in MAX_TOKENS table does not know the newer
+# models routed by the devtools workflow (DeepSeek v4 flash, GLM 5.3 flash),
+# so the review aborts with "not defined in MAX_TOKENS ... no
+# custom_model_max_tokens is set". This is the model's context ceiling used
+# for token accounting; the workflow's max_model_tokens still caps the prompt.
+custom_model_max_tokens = 128000
 
 [pr_reviewer]
 # One evolving review comment per PR instead of a new wall per push.
