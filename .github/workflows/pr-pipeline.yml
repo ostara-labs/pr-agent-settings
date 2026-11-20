@@ -4,10 +4,11 @@ name: PR pipeline
 # merge gate, chained with needs. The pull_request event flows through
 # github.event into every callee -- no workflow_run, no context loss.
 #
-# Required checks: ci / gate (CI aggregate) and merge-gate (plain job).
-# Renaming these caller jobs blocks merges loudly (required checks never
-# report). Bump the @digest deliberately, in step with the submodule:
-# `make devtools-update`, then move the @SHA to the matching tag commit.
+# Required checks: ci / gate (CI aggregate), merge-gate (plain job) and the
+# org ruleset's bare `gate` context. Renaming these caller jobs blocks merges
+# loudly (required checks never report). Bump the @digest deliberately, in
+# step with the submodule: `make devtools-update`, then move the @SHA to the
+# matching tag commit.
 #
 # Docs: ostara-labs/devtools docs/ai-review.md
 
@@ -42,6 +43,14 @@ jobs:
       issues: write
       pull-requests: write
     uses: ostara-labs/devtools/.github/workflows/ai-review.yml@004c5be3cc3ec0ad9387c76a02586cc979a8a83c # v1.13.6
+    # Temporary: the PR-Agent image's MAX_TOKENS table does not know the
+    # default DeepSeek v4 flash / GLM 5.3 flash pair, so this PR's own review
+    # aborts before its config fix (custom_model_max_tokens) can reach main.
+    # Route this PR's review to a model the table knows; revert once the
+    # config is on main.
+    with:
+      model: openrouter/auto
+      fallback-models: '["openrouter/x-ai/grok-4.5"]'
     secrets:
       AI_REVIEW_OPENROUTER_API_KEY: ${{ secrets.AI_REVIEW_OPENROUTER_API_KEY }}
 
@@ -61,3 +70,26 @@ jobs:
           review-result: ${{ github.event_name == 'merge_group' && 'success' || needs.ai-review.result }}
           draft: ${{ github.event.pull_request.draft }}
           labels: ${{ github.event_name == 'merge_group' && '[]' || toJSON(github.event.pull_request.labels.*.name) }}
+
+  # The org ruleset `main-protection` requires a status check literally named
+  # `gate` on the default branch. The devtools CI self-run reports that name;
+  # a consumer call reports `ci / gate` instead, so consumer PRs wait on a
+  # context nothing produces. This plain job reports the expected context and
+  # aggregates the real gates, treating "skipped" as a designed outcome (the
+  # push and merge_group event shapes).
+  gate:
+    name: gate
+    needs: [ci, ai-review, merge-gate]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Verify all gates passed
+        run: |
+          for result in "${{ needs.ci.result }}" "${{ needs.ai-review.result }}" "${{ needs.merge-gate.result }}"; do
+            case "$result" in
+              success|skipped) ;;
+              *) echo "::error::gate did not succeed: $result"; exit 1 ;;
+            esac
+          done
+          echo "all gates passed"
