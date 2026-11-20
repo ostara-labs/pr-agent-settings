@@ -42,6 +42,14 @@ jobs:
       issues: write
       pull-requests: write
     uses: ostara-labs/devtools/.github/workflows/ai-review.yml@004c5be3cc3ec0ad9387c76a02586cc979a8a83c # v1.13.6
+    # Temporary: the PR-Agent image's MAX_TOKENS table does not know the
+    # default DeepSeek v4 flash / GLM 5.3 flash pair, so this PR's own review
+    # aborts before its config fix (custom_model_max_tokens) can reach main.
+    # Route this PR's review to a model the table knows; revert once the
+    # config is on main.
+    with:
+      model: openrouter/auto
+      fallback-models: '["openrouter/x-ai/grok-4.5"]'
     secrets:
       AI_REVIEW_OPENROUTER_API_KEY: ${{ secrets.AI_REVIEW_OPENROUTER_API_KEY }}
 
