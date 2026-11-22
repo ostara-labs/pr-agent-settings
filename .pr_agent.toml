@@ -13,6 +13,10 @@
 
 [config]
 restricted_mode = true
+# Fingerprints inline suggestions and skips the ones already published on the
+# PR, so a re-review on a later push does not reopen the same thread. Without
+# it, a PR that took four pushes drew four waves of anchored comments.
+persistent_inline_comments = true
 # The PR-Agent image's built-in MAX_TOKENS table does not know the newer
 # models routed by the devtools workflow (DeepSeek v4 flash, GLM 5.3 flash),
 # so the review aborts with "not defined in MAX_TOKENS ... no
@@ -36,16 +40,25 @@ extra_instructions = """
   hypothetical improvements are out of scope.
 - When a finding is real, name the exact file and line, and state the
   concrete failure it causes - not a generic risk.
+- A second pass does not re-open a finding on code that exists only because
+  of your own previous finding's fix, unless that fix is itself wrong.
 - Lockfiles and generated/vendored artifacts (Cargo.lock, pnpm-lock.yaml,
   package-lock.json, yarn.lock, go.sum, *.min.js, dist/, target/) are out
   of scope: never comment on their content.
 """
 
 [pr_code_suggestions]
-# Anchored, committable suggestions (the /improve tool): each suggestion
-# above the score threshold is published as an inline, resolvable review
-# thread with a one-click suggestion block; the rest stay in the summary
-# table. Lower the threshold for more inline suggestions (0-10), -1 to
-# disable inline publication entirely.
-commitable_code_suggestions = true
+# Table-first: suggestions land in the summary table, and only those scoring at
+# or above dual_publishing_score_threshold are also published as inline,
+# committable threads. Publishing everything inline is what buried the real
+# findings under speculative ones.
+# 0.50.0 spelling; 0.45.0 carried the same key as `commitable_` (one t), where
+# this name was unknown and the key defaulted to off - which is the intended
+# value here, so the rename is safe on both versions.
+committable_code_suggestions = false
+# Score at or above which a suggestion is also published inline (1-10, -1 or 0
+# disables inline publication entirely).
 dual_publishing_score_threshold = 8
+# Drop suggestions the reviewer itself scores below 7. Upstream warns against
+# going above 8: past that, relevant suggestions get clipped.
+suggestions_score_threshold = 7
